@@ -1,0 +1,18 @@
+﻿# Environnement virtuel
+venv/
+.venv/
+env/
+
+# Fichiers Python compilés
+__pycache__/
+*.pyc
+
+# Fichiers volumineux
+*.h5
+*.zip
+*.tar.gz
+glove.6B.100d.txt
+
+# Fichiers système
+.DS_Store
+Thumbs.db

@@ -1,0 +1,198 @@
+\documentclass[10pt, aspectratio=169]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{sourcecodepro}
+
+% --- Style personnalisé (rouge, noir, bleu, blanc) ---
+\definecolor{mainred}{RGB}{200, 0, 0}      % rouge vif
+\definecolor{mainblue}{RGB}{0, 100, 200}   % bleu profond
+\definecolor{mainblack}{RGB}{0, 0, 0}      % noir
+\definecolor{mainwhite}{RGB}{255, 255, 255}% blanc
+
+\setbeamercolor{title}{fg=mainwhite, bg=mainred}
+\setbeamercolor{frametitle}{fg=mainwhite, bg=mainblue}
+\setbeamercolor{structure}{fg=mainred}
+\setbeamercolor{normal text}{fg=mainblack, bg=mainwhite}
+\setbeamercolor{alerted text}{fg=mainred}
+\setbeamercolor{block title}{fg=mainwhite, bg=mainblue}
+\setbeamercolor{block body}{fg=mainblack, bg=mainwhite!90!gray}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\setbeamertemplate{blocks}[rounded][shadow=true]
+
+\title{\textcolor{mainwhite}{Analyse de Sentiments de Critiques de Films}}
+\subtitle{Modèle LSTM bidirectionnel + embeddings GloVe}
+\author{Awa FAYE}
+\institute{Université Iba Der THIAM de Thiès \\ UFR SES / SET - Master SDA (Option IA)}
+\date{Année académique 2025-2026}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Plan}
+\tableofcontents
+\end{frame}
+
+\section{Introduction et objectifs}
+\begin{frame}{Contexte}
+\begin{itemize}
+    \item Classification automatique de critiques de films (IMDb) : sentiment \textbf{positif} ou \textbf{négatif}.
+    \item Objectif : dépasser une simple démonstration pour obtenir un classifieur \textbf{robuste} et \textbf{prêt à la production}.
+    \item Utilisation de techniques avancées : \textcolor{mainblue}{LSTM bidirectionnel}, \textcolor{mainred}{embeddings pré-entraînés GloVe}, \textcolor{mainblue}{fine-tuning}.
+\end{itemize}
+\end{frame}
+
+\section{Données et prétraitement}
+\begin{frame}{Le jeu de données IMDb}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{itemize}
+    \item 50\,000 critiques de films (25\,000 train / 25\,000 test).
+    \item Équilibre parfait : 50\% positifs, 50\% négatifs.
+    \item Distribution des longueurs (mots) – \textcolor{mainblue}{90e percentile} = 450 mots.
+\end{itemize}
+\column{0.5\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/distribution_longueurs.png}
+\captionof{figure}{Histogramme des longueurs des critiques}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Nettoyage et tokenisation}
+\begin{itemize}
+    \item Suppression des balises HTML (ex. \texttt{<br />}).
+    \item Suppression de la ponctuation, des chiffres, mise en minuscules.
+    \item Tokenisation avec \texttt{Tokenizer} (Keras) – \textcolor{mainred}{10\,000 mots les plus fréquents}.
+    \item Séquence padding à \texttt{maxlen = 450}.
+    \item Division : 80\% entraînement (20\,000), 20\% validation (5\,000).
+\end{itemize}
+\end{frame}
+
+\section{Architecture du modèle}
+\begin{frame}{Modèle LSTM bidirectionnel avec GloVe}
+\begin{block}{Couches principales}
+\begin{itemize}
+    \item \textbf{Embedding} : matrice GloVe (100 dimensions) – gelée au début.
+    \item \textbf{Bidirectional LSTM} : 64 unités, dropout 0.2.
+    \item \textbf{Dropout} : 0.5.
+    \item \textbf{Dense} : 32 neurones (ReLU).
+    \item \textbf{Sortie} : sigmoïde (binaire).
+\end{itemize}
+\end{block}
+\vspace{0.2cm}
+\centering
+\textcolor{mainblue}{Total params : 1\,320\,065} \quad | \quad \textcolor{mainred}{Trainable après fine-tuning : 320\,065}
+\end{frame}
+
+\begin{frame}{Fine-tuning progressif}
+\begin{enumerate}
+    \item \textbf{Phase 1} (embeddings gelés) : 20 époques, learning rate 0.001.
+    \item \textbf{Phase 2} (fine-tuning) : embeddings dégelés, 5 époques, learning rate réduit.
+    \item Callbacks : \texttt{EarlyStopping} (patience=3) et \texttt{ReduceLROnPlateau}.
+\end{enumerate}
+\end{frame}
+
+\section{Résultats expérimentaux}
+\begin{frame}{Courbes d’apprentissage}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/learning_curves_phase1.png}
+\captionof{figure}{Phase 1 – Embeddings gelés}
+\column{0.5\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/learning_curves_finetune.png}
+\captionof{figure}{Phase 2 – Fine-tuning}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Évaluation sur l’ensemble de test}
+\begin{itemize}
+    \item \textbf{Accuracy globale} : \textcolor{mainred}{89,87\%}.
+    \item Matrice de confusion :
+\end{itemize}
+\centering
+\includegraphics[width=0.6\linewidth]{figures/confusion_matrix.png}
+\captionof{figure}{Matrice de confusion – test (25\,000 critiques)}
+\end{frame}
+
+\begin{frame}{Rapport de classification détaillé}
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+Classe & Précision & Rappel & F1-score & Support \\
+\midrule
+Négatif & 0.91 & 0.88 & 0.90 & 12\,500 \\
+Positif & 0.89 & 0.92 & 0.90 & 12\,500 \\
+\midrule
+Accuracy & \multicolumn{4}{c}{0.90} \\
+Macro avg & 0.90 & 0.90 & 0.90 & 25\,000 \\
+\bottomrule
+\end{tabular}
+\vspace{0.5cm}
+
+\alert{Remarque} : Performance équilibrée entre les deux classes – pas de biais significatif.
+\end{frame}
+
+\section{Exemple de prédiction}
+\begin{frame}{Test sur une critique réelle}
+\begin{block}{Critique (extrait)}
+\small
+\textit{“This is one of the first films I can remember... very touching and I gotta go.”}
+\end{block}
+\vspace{0.2cm}
+\textbf{Résultat} : \\
+\centering
+\colorbox{mainblue!20}{\parbox{0.8\linewidth}{\centering
+Probabilité de positivité : \textcolor{mainred}{0.9899} \\
+\large \textcolor{mainblue}{Sentiment : POSITIF}
+}}
+\vspace{0.3cm}
+\flushleft
+Le modèle capture correctement la tonalité globalement positive malgré quelques expressions mitigées.
+\end{frame}
+
+\section{Conclusion et perspectives}
+\begin{frame}{Conclusion}
+\begin{itemize}
+    \item Un classifieur \textbf{robuste} (89,9\% de test accuracy) utilisant un \textcolor{mainblue}{LSTM bidirectionnel} et des \textcolor{mainred}{embeddings GloVe}.
+    \item Le fine-tuning des embeddings améliore légèrement la généralisation (validation \textasciitilde 90\%).
+    \item Modèle et tokenizer sauvegardés (\texttt{.h5} et \texttt{.pkl}) – prêts pour une \textbf{application web} (Streamlit).
+\end{itemize}
+\vspace{0.5cm}
+\begin{block}{Perspectives}
+\begin{itemize}
+    \item Essayer des embeddings contextuels (BERT, CamemBERT).
+    \item Déploiement sur un cloud avec API REST.
+    \item Analyse de sentiments en français.
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{Merci de votre attention}
+\centering
+\Huge \textcolor{mainred}{Questions ?}
+\vspace{1cm}
+
+\footnotesize
+\textbf{Références} : \\
+\url{http://ai.stanford.edu/~amaas/data/sentiment/} \\
+\url{https://nlp.stanford.edu/projects/glove/} \\
+Code source : GitHub – \texttt{imdb\_sentiment\_analysis}
+\end{frame}
+
+\end{document}
